@@ -1,12 +1,11 @@
 import { Box, Typography } from "@mui/material"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 
 export const Footer = () => {
-  const [fps, setFPS] = useState(0)
   const timerRef = useRef<number>(0)
   useEffect(() => {
     timerRef.current = window.setInterval(() => {
-      setFPS(window.frameCounter ?? 0)
+      document.getElementById("fps").innerText = window.frameCounter
       window.frameCounter = 0
     }, 1000)
 
@@ -20,7 +19,7 @@ export const Footer = () => {
     >
       <Box sx={{ flex: 1 }}>
         <Typography variant="body2" component="div">
-          FPS: {fps}
+          FPS: <span id="fps">0</span>
         </Typography>
       </Box>
       <Box sx={{}}>
