@@ -5,7 +5,7 @@ export const Footer = () => {
   const [fps, setFPS] = useState(0)
   const timerRef = useRef<number>(0)
   useEffect(() => {
-    timerRef.current = setInterval(() => {
+    timerRef.current = window.setInterval(() => {
       setFPS(window.frameCounter ?? 0)
       window.frameCounter = 0
     }, 1000)
@@ -25,7 +25,7 @@ export const Footer = () => {
       </Box>
       <Box sx={{}}>
         <Typography variant="body2" component="div">
-          PCD Viewer v1.0, hash {__GIT_HASH__}
+          PCD Viewer {__VERSION__}, hash {__GIT_HASH__}
         </Typography>
       </Box>
     </Box>
