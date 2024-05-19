@@ -1,8 +1,11 @@
 import {
+  BoxGeometry,
   BufferGeometry,
   Color,
   Float32BufferAttribute,
   Int32BufferAttribute,
+  Mesh,
+  MeshBasicMaterial,
   PerspectiveCamera,
   Points,
   PointsMaterial,
@@ -13,10 +16,11 @@ import {
   WebGLRenderer,
 } from "three"
 import { TrackballControls } from "three/examples/jsm/controls/TrackballControls.js"
-import { AxisChangeEvent, ScaleChangeEvent } from "../events/events.ts"
+import { AxisChangeEvent, RenderAsChangeEvent, ScaleChangeEvent } from "../events/events.ts"
 import { PCDLoader, ParsedPCDData } from "../loaders/pcd.ts"
 
 export class PCDRenderer {
+  private static _defaultCubeSize = 0.025
   private static _height = 600
   private static _width = 800
   private static _fov = 75
@@ -29,6 +33,7 @@ export class PCDRenderer {
   private static _mouse = new Vector2()
   private static _points: Points
   private static _rayCaster: Raycaster
+  private static _renderAsCubes = false
   private static _renderer: WebGLRenderer
   private static _scene: Scene
 
@@ -59,6 +64,33 @@ export class PCDRenderer {
         up = new Vector3(0, 1, 0)
     }
     PCDRenderer._camera.up.copy(up)
+  }
+
+  private static _generateCubeCloud(resetCamera = true) {
+    for (let i = 0; i < PCDRenderer._data.position.length / 3; i++) {
+      const x = PCDRenderer._data.position[i * 3]
+      const y = PCDRenderer._data.position[i * 3 + 1]
+      const z = PCDRenderer._data.position[i * 3 + 2]
+      const color = PCDRenderer._data.color.length
+        ? new Color(
+            PCDRenderer._data.color[i * 3],
+            PCDRenderer._data.color[i * 3 + 1],
+            PCDRenderer._data.color[i * 3 + 2],
+          )
+        : new Color(1, 1, 1)
+      const geometry = new BoxGeometry(
+        PCDRenderer._defaultCubeSize,
+        PCDRenderer._defaultCubeSize,
+        PCDRenderer._defaultCubeSize,
+      )
+      const material = new MeshBasicMaterial({ color })
+      const cube = new Mesh(geometry, material)
+      cube.position.set(x, y, z)
+      PCDRenderer._scene.add(cube)
+    }
+    if (resetCamera) {
+      // Do something?
+    }
   }
 
   private static _generatePointCloud(resetCamera = true) {
@@ -121,6 +153,7 @@ export class PCDRenderer {
     PCDRenderer._controls.keys = ["KeyW", "KeyA", "KeyS", "KeyD"]
     PCDRenderer._rayCaster = new Raycaster()
     window.addEventListener("AXIS_CHANGE", PCDRenderer._axisChange as EventListener)
+    window.addEventListener("RENDER_AS_CHANGE", PCDRenderer._renderAsChange as EventListener)
     window.addEventListener("SCALE_CHANGE", PCDRenderer._scaleChange as EventListener)
     PCDRenderer._renderer.domElement.addEventListener("click", PCDRenderer._mouseClick)
     PCDRenderer._renderer.domElement.addEventListener("pointermove", PCDRenderer._mouseMove)
@@ -153,6 +186,11 @@ export class PCDRenderer {
     PCDRenderer._mouse.y = -(e.offsetY / PCDRenderer._height) * 2 + 1
   }
 
+  private static _renderAsChange = (e: CustomEvent<RenderAsChangeEvent>) => {
+    PCDRenderer._renderAsCubes = e.detail.renderAs === "cubes"
+    PCDRenderer._renderPCD()
+  }
+
   private static _renderLoop() {
     if (!PCDRenderer._isRendering) return
     window.frameCounter++
@@ -172,8 +210,11 @@ export class PCDRenderer {
     PCDRenderer._initialise()
     if (data) PCDRenderer._data = data
     PCDRenderer._scene.clear()
-    // TODO - decide whether to render as Points or Cubes
-    PCDRenderer._generatePointCloud(resetCamera)
+    if (PCDRenderer._renderAsCubes) {
+      PCDRenderer._generateCubeCloud(resetCamera)
+    } else {
+      PCDRenderer._generatePointCloud(resetCamera)
+    }
     PCDRenderer.start()
   }
 
