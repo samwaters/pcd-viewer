@@ -1,7 +1,7 @@
 import { Box, Typography } from "@mui/material"
 import { useCallback } from "react"
 import { useDropzone } from "react-dropzone"
-import { renderPCD } from "../../renderers/pcd.ts"
+import { PCDRenderer } from "../../renderers/pcd.ts"
 
 export const DropZone = () => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -12,7 +12,7 @@ export const DropZone = () => {
     const reader = new FileReader()
     reader.onerror = () => console.error("Could not read PCD")
     reader.onload = () => {
-      renderPCD(reader.result!)
+      PCDRenderer.loadPCD(reader.result!)
     }
     reader.readAsArrayBuffer(acceptedFiles[0])
   }, [])
