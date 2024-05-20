@@ -13,6 +13,6 @@ export default ts.config(
     files: ["src/**/*.{ts,tsx}"],
   },
   {
-    ignores: ["**/*.d.ts"],
+    ignores: ["**/*.d.ts", "**/dist/*"],
   }
 )

@@ -5,7 +5,7 @@ export const Footer = () => {
   const timerRef = useRef<number>(0)
   useEffect(() => {
     timerRef.current = window.setInterval(() => {
-      document.getElementById("fps").innerText = window.frameCounter
+      document.getElementById("fps")!.innerText = "" + window.frameCounter
       window.frameCounter = 0
     }, 1000)
 
