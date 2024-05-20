@@ -6,6 +6,7 @@ import {
   Int32BufferAttribute,
   Mesh,
   MeshBasicMaterial,
+  Object3D,
   PerspectiveCamera,
   Points,
   PointsMaterial,
@@ -16,14 +17,14 @@ import {
   WebGLRenderer,
 } from "three"
 import { TrackballControls } from "three/examples/jsm/controls/TrackballControls.js"
-import { AxisChangeEvent, RenderAsChangeEvent, ScaleChangeEvent } from "../events/events.ts"
+import { AxisChangeEvent, FOVChangeEvent, RenderAsChangeEvent, ScaleChangeEvent } from "../events/events.ts"
 import { PCDLoader, ParsedPCDData } from "../loaders/pcd.ts"
 
 export class PCDRenderer {
   private static _defaultCubeSize = 0.025
   private static _height = 600
   private static _width = 800
-  private static _fov = 75
+  private static _fov = 60
 
   private static _camera: PerspectiveCamera
   private static _controls: TrackballControls
@@ -36,6 +37,8 @@ export class PCDRenderer {
   private static _renderAsCubes = false
   private static _renderer: WebGLRenderer
   private static _scene: Scene
+  private static _selectedObject: Object3D | null = null
+  private static _selectedObjectColor: Color = new Color()
 
   private static _isRendering = false
 
@@ -64,6 +67,10 @@ export class PCDRenderer {
         up = new Vector3(0, 1, 0)
     }
     PCDRenderer._camera.up.copy(up)
+  }
+
+  private static _fovChange(e: CustomEvent<FOVChangeEvent>) {
+    PCDRenderer._camera.fov = e.detail.newFOV
   }
 
   private static _generateCubeCloud(resetCamera = true) {
@@ -153,31 +160,57 @@ export class PCDRenderer {
     PCDRenderer._controls.keys = ["KeyW", "KeyA", "KeyS", "KeyD"]
     PCDRenderer._rayCaster = new Raycaster()
     window.addEventListener("AXIS_CHANGE", PCDRenderer._axisChange as EventListener)
+    window.addEventListener("FOV_CHANGE", PCDRenderer._fovChange as EventListener)
     window.addEventListener("RENDER_AS_CHANGE", PCDRenderer._renderAsChange as EventListener)
     window.addEventListener("SCALE_CHANGE", PCDRenderer._scaleChange as EventListener)
     PCDRenderer._renderer.domElement.addEventListener("click", PCDRenderer._mouseClick)
+    PCDRenderer._renderer.domElement.addEventListener("pointerdown", PCDRenderer._mouseDown)
     PCDRenderer._renderer.domElement.addEventListener("pointermove", PCDRenderer._mouseMove)
+    PCDRenderer._renderer.domElement.addEventListener("pointerup", PCDRenderer._mouseUp)
+    PCDRenderer._renderer.domElement.addEventListener("wheel", PCDRenderer._mouseScroll)
     PCDRenderer._initialised = true
   }
 
   private static _mouseClick(e: MouseEvent) {
-    if (e.shiftKey) {
-      console.log([PCDRenderer._mouse.x, PCDRenderer._mouse.y, 0])
-      PCDRenderer.addData({
-        position: [PCDRenderer._mouse.x, -PCDRenderer._mouse.y, 0],
-        color: [1, 1, 1],
-        normal: [],
-        intensity: [],
-        label: [],
-      })
-      return
+    if (!e.shiftKey) return
+    console.log([PCDRenderer._mouse.x, PCDRenderer._mouse.y, 0])
+    PCDRenderer.addData({
+      position: [PCDRenderer._mouse.x, -PCDRenderer._mouse.y, 0],
+      color: [1, 1, 1],
+      normal: [],
+      intensity: [],
+      label: [],
+    })
+  }
+
+  private static _mouseDown() {
+    if (PCDRenderer._selectedObject !== null) {
+      // @ts-expect-error material does exist, just not on the types
+      PCDRenderer._selectedObject.material.color.set(PCDRenderer._selectedObjectColor)
+      PCDRenderer._selectedObject = null
     }
     PCDRenderer._rayCaster.setFromCamera(PCDRenderer._mouse, PCDRenderer._camera)
     const intersecting = PCDRenderer._rayCaster.intersectObjects(PCDRenderer._scene.children)
-    intersecting.forEach((intersect) => {
+    PCDRenderer._controls.enabled = intersecting.length === 0
+    if (intersecting.length > 0) {
+      PCDRenderer._selectedObject = intersecting[0].object
       // @ts-expect-error material does exist, just not on the types
-      intersect.object.material.color.set(0x0000ff)
-    })
+      PCDRenderer._selectedObjectColor.set(intersecting[0].object.material.color)
+      // @ts-expect-error material does exist, just not on the types
+      intersecting[0].object.material.color.set(0x0000ff)
+    }
+  }
+
+  private static _mouseUp() {
+    PCDRenderer._controls.enabled = PCDRenderer._selectedObject === null
+  }
+
+  private static _mouseScroll(e: WheelEvent) {
+    if (PCDRenderer._selectedObject === null) return
+    const multiplier = e.deltaY > 0 ? -1 : 1
+    PCDRenderer._selectedObject.scale.x += multiplier * 0.1
+    PCDRenderer._selectedObject.scale.y += multiplier * 0.1
+    PCDRenderer._selectedObject.scale.z += multiplier * 0.1
   }
 
   private static _mouseMove(e: PointerEvent) {

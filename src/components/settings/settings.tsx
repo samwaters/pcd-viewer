@@ -1,10 +1,32 @@
-import { Box, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Slider, Typography } from "@mui/material"
-import { ChangeEvent } from "react"
-import { AxisChangeEvent, ScaleChangeEvent } from "../../events/events.ts"
+import {
+  Box,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  InputLabel,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Select,
+  SelectChangeEvent,
+  Slider,
+  Typography,
+} from "@mui/material"
+import { ChangeEvent, useState } from "react"
+import { AxisChangeEvent, FOVChangeEvent, ScaleChangeEvent } from "../../events/events.ts"
 
 export const Settings = () => {
+  const [fov, setFOV] = useState("60")
+
   const handleAxisChange = (_: ChangeEvent<HTMLInputElement>, value: string) => {
     window.dispatchEvent(new CustomEvent<AxisChangeEvent>("AXIS_CHANGE", { detail: { newAxis: value } }))
+  }
+
+  const handleFOVChange = (e: SelectChangeEvent) => {
+    setFOV(e.target.value)
+    window.dispatchEvent(
+      new CustomEvent<FOVChangeEvent>("FOV_CHANGE", { detail: { newFOV: parseInt(e.target.value) } }),
+    )
   }
 
   const handleScaleChange = (_: Event, value: number | number[]) => {
@@ -13,10 +35,20 @@ export const Settings = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
       <Typography variant="body1" component="div">
         Settings
       </Typography>
+      <FormControl fullWidth size="small">
+        <InputLabel>FOV</InputLabel>
+        <Select label="FOV" onChange={handleFOVChange} value={fov}>
+          <MenuItem value={15}>15</MenuItem>
+          <MenuItem value={30}>30</MenuItem>
+          <MenuItem value={45}>45</MenuItem>
+          <MenuItem value={60}>60</MenuItem>
+          <MenuItem value={75}>75</MenuItem>
+        </Select>
+      </FormControl>
       <FormControl>
         <FormLabel>Up Axis</FormLabel>
         <RadioGroup defaultValue="upY" row onChange={handleAxisChange}>
