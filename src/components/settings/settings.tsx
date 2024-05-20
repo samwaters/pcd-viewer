@@ -12,11 +12,23 @@ import {
   Slider,
   Typography,
 } from "@mui/material"
-import { ChangeEvent, useState } from "react"
-import { AxisChangeEvent, FOVChangeEvent, ScaleChangeEvent } from "../../events/events.ts"
+import { ChangeEvent, useEffect, useState } from "react"
+import { AxisChangeEvent, FOVChangeEvent, RenderAsChangeEvent, ScaleChangeEvent } from "../../events/events.ts"
 
 export const Settings = () => {
+  const [scaleEnabled, setScaleEnabled] = useState(true)
   const [fov, setFOV] = useState("60")
+
+  const handleRenderAsChange = (e: CustomEvent<RenderAsChangeEvent>) => {
+    setScaleEnabled(e.detail.renderAs === "points")
+  }
+
+  useEffect(() => {
+    window.addEventListener("RENDER_AS_CHANGE", handleRenderAsChange as EventListener)
+    return () => {
+      window.removeEventListener("RENDER_AS_CHANGE", handleRenderAsChange as EventListener)
+    }
+  }, [])
 
   const handleAxisChange = (_: ChangeEvent<HTMLInputElement>, value: string) => {
     window.dispatchEvent(new CustomEvent<AxisChangeEvent>("AXIS_CHANGE", { detail: { newAxis: value } }))
@@ -62,7 +74,14 @@ export const Settings = () => {
       </FormControl>
       <FormControl fullWidth>
         <FormLabel>Scale</FormLabel>
-        <Slider defaultValue={0.2} step={0.01} min={0.05} max={0.5} onChange={handleScaleChange} />
+        <Slider
+          defaultValue={0.2}
+          disabled={!scaleEnabled}
+          step={0.01}
+          min={0.05}
+          max={0.5}
+          onChange={handleScaleChange}
+        />
       </FormControl>
     </Box>
   )

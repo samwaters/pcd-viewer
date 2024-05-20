@@ -4,6 +4,7 @@ import {
   Color,
   Float32BufferAttribute,
   Int32BufferAttribute,
+  MathUtils,
   Mesh,
   MeshBasicMaterial,
   Object3D,
@@ -32,6 +33,7 @@ export class PCDRenderer {
   private static _initialScale = new Vector3()
   private static _initialised = false
   private static _mouse = new Vector2()
+  private static _mouseScreen = new Vector2()
   private static _points: Points
   private static _rayCaster: Raycaster
   private static _renderAsCubes = false
@@ -214,9 +216,23 @@ export class PCDRenderer {
   }
 
   private static _mouseMove(e: PointerEvent) {
+    if (PCDRenderer._selectedObject !== null && e.buttons === 1) {
+      const xMultiplier =
+        e.screenX - PCDRenderer._mouseScreen.x === 0 ? 0 : e.screenX < PCDRenderer._mouseScreen.x ? 1 : -1
+      const yMultiplier =
+        e.screenY - PCDRenderer._mouseScreen.y === 0 ? 0 : e.screenY < PCDRenderer._mouseScreen.y ? 1 : -1
+      // X movement = Y rotation
+      // Also factor in up axis
+      PCDRenderer._selectedObject.rotateX(MathUtils.degToRad(yMultiplier * 0.5 * PCDRenderer._camera.up.y))
+      PCDRenderer._selectedObject.rotateY(MathUtils.degToRad(xMultiplier * 0.5))
+    }
     // Map the mouse to -1 -> +1 coordinates
     PCDRenderer._mouse.x = (e.offsetX / PCDRenderer._width) * 2 - 1
     PCDRenderer._mouse.y = -(e.offsetY / PCDRenderer._height) * 2 + 1
+    // Store the current mouse coords
+    // While e.movementX|Y are provided, they are not reliable
+    PCDRenderer._mouseScreen.x = e.screenX
+    PCDRenderer._mouseScreen.y = e.screenY
   }
 
   private static _renderAsChange = (e: CustomEvent<RenderAsChangeEvent>) => {
